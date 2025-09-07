@@ -1,8 +1,7 @@
 name: Build container release images
 on:
   push:
-    tags:
-      - '*'
+    - develop
 
 permissions:
   contents: read
