@@ -64,6 +64,8 @@ jobs:
         uses: docker/metadata-action@v5
         if: ${{ inputs.push_to_images != '' }}
         with:
+          tags: |
+            type=ref,event=branch
           images: ${{ inputs.push_to_images }}
           flavor: ${{ inputs.flavor }}
           labels: ${{ inputs.labels }}
