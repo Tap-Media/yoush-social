@@ -13,7 +13,20 @@ class Api::V1::MemoriesController < Api::BaseController
   private
 
   def load_statuses
-    current_account.statuses.on_this_day(current_user.time_zone).order(created_at: :desc).page(params[:page]).per(limit_param(DEFAULT_STATUSES_LIMIT))
+    cached_memories
+  end
+
+  def cached_memories
+    preload_collection_paginated_by_id(
+      memories_scope,
+      Status,
+      limit_param(DEFAULT_STATUSES_LIMIT),
+      params_slice(:max_id, :since_id, :min_id)
+    )
+  end
+
+  def memories_scope
+    current_account.statuses.on_this_day(current_user.time_zone)
   end
 
   def next_path
