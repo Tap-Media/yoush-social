@@ -17,6 +17,18 @@ RSpec.describe 'Memories', :inline_jobs do
 
     it_behaves_like 'forbidden for wrong scope', 'write write:statuses'
 
+    context 'when memories are disabled' do
+      before do
+        user.settings['memories_enabled'] = false
+        user.save!
+      end
+
+      it 'returns http forbidden' do
+        subject
+        expect(response).to have_http_status(403)
+      end
+    end
+
     context 'when there are statuses on this day' do
       let!(:status_today) { Fabricate(:status, account: user.account, created_at: 1.year.ago) }
       let!(:status_yesterday) { Fabricate(:status, account: user.account, created_at: 1.year.ago - 1.day) }
@@ -50,6 +62,19 @@ RSpec.describe 'Memories', :inline_jobs do
             )
           expect(response.content_type)
             .to start_with('application/json')
+        end
+
+        it 'pagination works correctly (continuity)' do
+          # First request (gets status_today, newest first)
+          get '/api/v1/memories', headers: headers, params: { limit: 1 }
+          expect(response.parsed_body.pluck(:id)).to contain_exactly(status_today.id.to_s)
+
+          next_link = response.links['next']
+          expect(next_link).to be_present
+
+          # Second request
+          get next_link, headers: headers
+          expect(response.parsed_body.pluck(:id)).to contain_exactly(status_today_2.id.to_s)
         end
       end
     end

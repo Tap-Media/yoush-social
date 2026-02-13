@@ -597,4 +597,23 @@ RSpec.describe Status do
       expect(status.uri).to start_with('https://')
     end
   end
+
+  describe '.memories' do
+    let(:account) { Fabricate(:account) }
+    let!(:status_today) { Fabricate(:status, account: account, created_at: 1.year.ago) }
+    let!(:status_yesterday) { Fabricate(:status, account: account, created_at: 1.year.ago - 1.day) }
+    let!(:status_this_year) { Fabricate(:status, account: account, created_at: Time.now.utc) }
+
+    it 'returns statuses from previous years on this day' do
+      expect(described_class.memories.where(account: account)).to include(status_today)
+    end
+
+    it 'does not return statuses from today (current year)' do
+      expect(described_class.memories.where(account: account)).to_not include(status_this_year)
+    end
+
+    it 'does not return statuses from other days' do
+      expect(described_class.memories.where(account: account)).to_not include(status_yesterday)
+    end
+  end
 end
