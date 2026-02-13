@@ -14,6 +14,8 @@ import AddIcon from '@/material-icons/400-24px/add.svg?react';
 import AlternateEmailIcon from '@/material-icons/400-24px/alternate_email.svg?react';
 import BookmarksActiveIcon from '@/material-icons/400-24px/bookmarks-fill.svg?react';
 import BookmarksIcon from '@/material-icons/400-24px/bookmarks.svg?react';
+import HistoryActiveIcon from '@/material-icons/400-24px/history-fill.svg?react';
+import HistoryIcon from '@/material-icons/400-24px/history.svg?react';
 import HomeActiveIcon from '@/material-icons/400-24px/home-fill.svg?react';
 import HomeIcon from '@/material-icons/400-24px/home.svg?react';
 import InfoIcon from '@/material-icons/400-24px/info.svg?react';
@@ -58,6 +60,7 @@ const messages = defineMessages({
   direct: { id: 'navigation_bar.direct', defaultMessage: 'Private mentions' },
   favourites: { id: 'navigation_bar.favourites', defaultMessage: 'Favorites' },
   bookmarks: { id: 'navigation_bar.bookmarks', defaultMessage: 'Bookmarks' },
+  memories: { id: 'navigation_bar.memories', defaultMessage: 'Memories' },
   preferences: {
     id: 'navigation_bar.preferences',
     defaultMessage: 'Preferences',
@@ -295,6 +298,14 @@ export const NavigationPanel: React.FC<{ multiColumn?: boolean }> = ({
               iconComponent={BookmarksIcon}
               activeIconComponent={BookmarksActiveIcon}
               text={intl.formatMessage(messages.bookmarks)}
+            />
+            <ColumnLink
+              transparent
+              to='/memories'
+              icon='history'
+              iconComponent={HistoryIcon}
+              activeIconComponent={HistoryActiveIcon}
+              text={intl.formatMessage(messages.memories)}
             />
             <ColumnLink
               transparent

@@ -57,6 +57,8 @@ namespace :api, format: false do
       resources :list, only: :show
     end
 
+    resources :memories, only: :index
+
     with_options to: 'streaming#index' do
       get '/streaming'
       get '/streaming/(*any)'

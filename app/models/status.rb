@@ -137,6 +137,13 @@ class Status < ApplicationRecord
     where('NOT EXISTS (SELECT * FROM statuses_tags forbidden WHERE forbidden.status_id = statuses.id AND forbidden.tag_id IN (?))', tag_ids)
   }
 
+  scope :on_this_day, lambda { |timezone = 'UTC'|
+    date = Time.current.in_time_zone(timezone)
+    where('EXTRACT(MONTH FROM created_at) = ?', date.month)
+      .where('EXTRACT(DAY FROM created_at) = ?', date.day)
+      .where('created_at < ?', date.beginning_of_year)
+  }
+
   after_create_commit :trigger_create_webhooks
   after_update_commit :trigger_update_webhooks
 

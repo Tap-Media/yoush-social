@@ -76,6 +76,7 @@ import {
   TermsOfService,
   AccountFeatured,
   Quotes,
+  Memories,
 } from './util/async-components';
 import { ColumnsContextProvider } from './util/columns_context';
 import { focusColumn, getFocusedItemIndex, focusItemSibling } from './util/focusUtils';
@@ -196,6 +197,7 @@ class SwitchingColumnsArea extends PureComponent {
             <WrappedRoute path='/start/follows' component={OnboardingFollows} content={children} />
             <WrappedRoute path='/directory' component={Directory} content={children} />
             <WrappedRoute path='/explore' component={Explore} content={children} />
+            <WrappedRoute path='/memories' component={Memories} content={children} />
             <WrappedRoute path='/search' component={Search} content={children} />
             <WrappedRoute path={['/publish', '/statuses/new']} component={Compose} content={children} />
 
@@ -526,6 +528,10 @@ class UI extends PureComponent {
     this.props.history.push('/favourites');
   };
 
+  handleHotkeyGoToMemories = () => {
+    this.props.history.push('/memories');
+  };
+
   handleHotkeyGoToPinned = () => {
     this.props.history.push('/pinned');
   };
@@ -568,6 +574,7 @@ class UI extends PureComponent {
       goToDirect: this.handleHotkeyGoToDirect,
       goToStart: this.handleHotkeyGoToStart,
       goToFavourites: this.handleHotkeyGoToFavourites,
+      goToMemories: this.handleHotkeyGoToMemories,
       goToPinned: this.handleHotkeyGoToPinned,
       goToProfile: this.handleHotkeyGoToProfile,
       goToBlocked: this.handleHotkeyGoToBlocked,

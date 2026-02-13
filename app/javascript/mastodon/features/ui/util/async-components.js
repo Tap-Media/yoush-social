@@ -98,6 +98,10 @@ export function FavouritedStatuses () {
   return import('../../favourited_statuses');
 }
 
+export function Memories () {
+  return import('../../memories');
+}
+
 export function FollowedTags () {
   return import('../../followed_tags');
 }

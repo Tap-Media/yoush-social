@@ -55,6 +55,7 @@ en:
         phrase: Will be matched regardless of casing in text or content warning of a post
         scopes: Which APIs the application will be allowed to access. If you select a top-level scope, you don't need to select individual ones.
         setting_aggregate_reblogs: Do not show new boosts for posts that have been recently boosted (only affects newly-received boosts)
+        setting_on_this_day_enabled: "Show 'Memories' from previous years"
         setting_always_send_emails: Normally e-mail notifications won't be sent when you are actively using Mastodon
         setting_default_quote_policy: This setting will only take effect for posts created with the next Mastodon version, but you can select your preference in preparation.
         setting_default_sensitive: Sensitive media is hidden by default and can be revealed with a click
@@ -232,6 +233,7 @@ en:
         phrase: Keyword or phrase
         setting_advanced_layout: Enable advanced web interface
         setting_aggregate_reblogs: Group boosts in timelines
+        setting_on_this_day_enabled: "Enable 'Memories'"
         setting_always_send_emails: Always send e-mail notifications
         setting_auto_play_gif: Auto-play animated GIFs
         setting_boost_modal: Show confirmation dialog before boosting

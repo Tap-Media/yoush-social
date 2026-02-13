@@ -18,6 +18,7 @@ import {
   BookmarkedStatuses,
   ListTimeline,
   Directory,
+  Memories,
 } from '../util/async-components';
 import { useColumnsContext } from '../util/columns_context';
 
@@ -40,6 +41,7 @@ const componentMap = {
   'BOOKMARKS': BookmarkedStatuses,
   'LIST': ListTimeline,
   'DIRECTORY': Directory,
+  'MEMORIES': Memories,
 };
 
 const TabsBarPortal = () => {
