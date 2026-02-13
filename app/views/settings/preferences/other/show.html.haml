@@ -9,9 +9,9 @@
 
   = f.simple_fields_for :settings, current_user.settings do |ff|
     .fields-group
-      = ff.input :on_this_day_enabled,
-                 hint: I18n.t('simple_form.hints.defaults.setting_on_this_day_enabled'),
-                 label: I18n.t('simple_form.labels.defaults.setting_on_this_day_enabled'),
+      = ff.input :memories_enabled,
+                 hint: I18n.t('simple_form.hints.defaults.setting_memories_enabled'),
+                 label: I18n.t('simple_form.labels.defaults.setting_memories_enabled'),
                  wrapper: :with_label
       = ff.input :aggregate_reblogs,
                  hint: I18n.t('simple_form.hints.defaults.setting_aggregate_reblogs'),

@@ -11,6 +11,7 @@ import { uuid } from '../uuid';
 
 const initialState = ImmutableMap({
   saved: true,
+  memories_enabled: true,
 
   skinTone: 1,
 

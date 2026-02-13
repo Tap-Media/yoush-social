@@ -9,7 +9,7 @@ class UserSettings
 
   setting :always_send_emails, default: false
   setting :aggregate_reblogs, default: true
-  setting :on_this_day_enabled, default: true
+  setting :memories_enabled, default: true
   setting :theme, default: -> { ::Setting.theme }
   setting :noindex, default: -> { ::Setting.noindex }
   setting :show_application, default: true

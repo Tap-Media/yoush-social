@@ -137,7 +137,7 @@ class Status < ApplicationRecord
     where('NOT EXISTS (SELECT * FROM statuses_tags forbidden WHERE forbidden.status_id = statuses.id AND forbidden.tag_id IN (?))', tag_ids)
   }
 
-  scope :on_this_day, lambda { |timezone = 'UTC'|
+  scope :memories, lambda { |timezone = 'UTC'|
     date = Time.current.in_time_zone(timezone)
     where('EXTRACT(MONTH FROM created_at) = ?', date.month)
       .where('EXTRACT(DAY FROM created_at) = ?', date.day)

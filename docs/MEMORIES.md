@@ -1,4 +1,4 @@
-# Memories (On This Day) Feature
+# Memories Feature
 
 This feature allows users to rediscover their statuses posted on the same day in previous years.
 
@@ -8,7 +8,10 @@ The feature provides an API endpoint that retrieves statuses created by the curr
 
 ## Integration Flow
 
-1.  **Check Feature Availability**: The feature is available to all authenticated users.
+1.  **Check Feature Availability**: 
+    - The feature is available to all authenticated users.
+    - The user must have the "Memories" setting enabled in their preferences (`memories_enabled`).
+    - If disabled, the API returns `403 Forbidden`.
 2.  **Fetch Memories**:
     - The client requests `GET /api/v1/memories`.
     - The server calculates "today" based on the user's configured Time Zone.
@@ -25,7 +28,7 @@ The feature provides an API endpoint that retrieves statuses created by the curr
 
 ### GET /api/v1/memories
 
-Retrieves the "On This Day" statuses.
+Retrieves the "Memories" statuses.
 
 **Authentication:**
 - Required
@@ -98,6 +101,7 @@ Authorization: Bearer XXXXXX
 
 **Pagination Implementation Note:**
 
-This endpoint uses standard Mastodon ID-based pagination (`max_id`, `min_id`, `since_id`).
-- Clients should parse the `Link` header to get the next/prev page URLs.
-- The `Link` header `rel="next"` will contain `?max_id=...` for infinite scroll.
+This endpoint supports ID-based pagination (Cursor-based) similar to timelines.
+- Use `max_id` to load older posts (next page).
+- Use `min_id` to load newer posts (previous page/refresh).
+- The `Link` header in the response provides pre-constructed URLs for `next` and `prev`.

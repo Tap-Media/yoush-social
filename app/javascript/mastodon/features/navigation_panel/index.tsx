@@ -40,6 +40,7 @@ import { useIdentity } from 'mastodon/identity_context';
 import { timelinePreview, trendsEnabled, me } from 'mastodon/initial_state';
 import { transientSingleColumn } from 'mastodon/is_mobile';
 import { selectUnreadNotificationGroupsCount } from 'mastodon/selectors/notifications';
+import { selectMemoriesEnabled } from 'mastodon/selectors/settings';
 import { useAppSelector, useAppDispatch } from 'mastodon/store';
 
 import { DisabledAccountBanner } from './components/disabled_account_banner';
@@ -193,6 +194,7 @@ export const NavigationPanel: React.FC<{ multiColumn?: boolean }> = ({
 }) => {
   const intl = useIntl();
   const { signedIn, disabledAccountId } = useIdentity();
+  const memoriesEnabled = useAppSelector(selectMemoriesEnabled);
   const location = useLocation();
   const showSearch = useBreakpoint('full') && !multiColumn;
 
@@ -299,14 +301,16 @@ export const NavigationPanel: React.FC<{ multiColumn?: boolean }> = ({
               activeIconComponent={BookmarksActiveIcon}
               text={intl.formatMessage(messages.bookmarks)}
             />
-            <ColumnLink
-              transparent
-              to='/memories'
-              icon='history'
-              iconComponent={HistoryIcon}
-              activeIconComponent={HistoryActiveIcon}
-              text={intl.formatMessage(messages.memories)}
-            />
+            {memoriesEnabled && (
+              <ColumnLink
+                transparent
+                to='/memories'
+                icon='history'
+                iconComponent={HistoryIcon}
+                activeIconComponent={HistoryActiveIcon}
+                text={intl.formatMessage(messages.memories)}
+              />
+            )}
             <ColumnLink
               transparent
               to='/conversations'

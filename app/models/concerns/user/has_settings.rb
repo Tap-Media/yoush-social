@@ -63,8 +63,8 @@ module User::HasSettings
     settings['web.expand_content_warnings']
   end
 
-  def setting_on_this_day_enabled
-    settings['web.on_this_day_enabled']
+  def setting_memories_enabled
+    settings['memories_enabled']
   end
 
   def setting_default_language

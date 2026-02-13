@@ -55,4 +55,7 @@ export const selectSettingsNotificationsMinimizeFilteredBanner = (
 export const selectSettingsNotificationsGroupFollows = (state: RootState) =>
   state.settings.getIn(['notifications', 'group', 'follow']) as boolean;
 
+export const selectMemoriesEnabled = (state: RootState) =>
+  state.settings.get('memories_enabled') as boolean;
+
 /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */

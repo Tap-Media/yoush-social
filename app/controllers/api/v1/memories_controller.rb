@@ -3,6 +3,7 @@
 class Api::V1::MemoriesController < Api::BaseController
   before_action -> { authorize_if_got_token! :read, :'read:statuses' }
   before_action :require_user!
+  before_action :check_enabled
   after_action :insert_pagination_headers
 
   def index
@@ -26,7 +27,7 @@ class Api::V1::MemoriesController < Api::BaseController
   end
 
   def memories_scope
-    current_account.statuses.on_this_day(current_user.time_zone)
+    current_account.statuses.memories(current_user.time_zone)
   end
 
   def next_path
@@ -43,5 +44,9 @@ class Api::V1::MemoriesController < Api::BaseController
 
   def records_continue?
     @statuses.size == limit_param(DEFAULT_STATUSES_LIMIT)
+  end
+
+  def check_enabled
+    forbidden unless current_user.setting_memories_enabled
   end
 end

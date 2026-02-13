@@ -197,6 +197,7 @@ module ApplicationHelper
 
     if user_signed_in? && current_user.functional?
       state_params[:settings]          = state_params[:settings].merge(Web::Setting.find_by(user: current_user)&.data || {})
+      state_params[:settings][:memories_enabled] = current_user.setting_memories_enabled
       state_params[:push_subscription] = current_account.user.web_push_subscription(current_session)
       state_params[:current_account]   = current_account
       state_params[:token]             = current_session.token
