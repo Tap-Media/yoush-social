@@ -115,4 +115,26 @@ RSpec.describe Mastodon::SidekiqQueueController do
       )
     end
   end
+
+  describe '#release_lock' do
+    it 'uses a Redis EVAL call without array-style command arguments' do
+      redis = instance_double('RedisClient')
+      controller = described_class.new(env: env)
+
+      controller.instance_variable_set(:@lock_token, 'token-123')
+
+      allow(Sidekiq).to receive(:redis).and_yield(redis)
+      allow(redis).to receive(:call)
+
+      controller.send(:release_lock)
+
+      expect(redis).to have_received(:call).with(
+        'EVAL',
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+        1,
+        'lock-key',
+        'token-123'
+      )
+    end
+  end
 end

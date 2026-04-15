@@ -114,10 +114,12 @@ module Mastodon
 
     def release_lock
       Sidekiq.redis do |redis|
-        redis.eval(
+        redis.call(
+          'EVAL',
           "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-          keys: [@lock_key],
-          argv: [@lock_token]
+          1,
+          @lock_key,
+          @lock_token
         )
       end
     end
