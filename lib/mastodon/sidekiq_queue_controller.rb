@@ -297,6 +297,7 @@ module Mastodon
       )
 
       request = Net::HTTP::Post.new(endpoint)
+      headers.each { |name, value| request[name] = value }
       signature.headers.each { |name, value| request[name] = value }
       request.body = body
 

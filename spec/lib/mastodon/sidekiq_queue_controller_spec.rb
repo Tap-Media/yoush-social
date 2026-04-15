@@ -88,7 +88,11 @@ RSpec.describe Mastodon::SidekiqQueueController do
       allow(Aws::Sigv4::Signer).to receive(:new).and_return(signer)
       allow(signer).to receive(:sign_request).and_return(signature)
       allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
-      allow(http).to receive(:request).and_return(response)
+      allow(http).to receive(:request) do |request|
+        expect(request['x-amz-target']).to eq('AmazonEC2ContainerServiceV20141113.DescribeServices')
+        expect(request['content-type']).to eq('application/x-amz-json-1.1')
+        response
+      end
       allow(Net::HTTP).to receive(:start).and_yield(http)
 
       controller = described_class.new(env: env, credentials_provider: credentials_provider)
