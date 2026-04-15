@@ -268,12 +268,20 @@ module Mastodon
     end
 
     def signed_request(service:, endpoint:, headers:, body:)
-      credentials = if @credentials_provider.respond_to?(:credentials)
-        @credentials_provider.credentials
-      elsif @credentials_provider.respond_to?(:resolve)
-        @credentials_provider.resolve
-      else
-        @credentials_provider
+      credentials = @credentials_provider
+
+      3.times do
+        break if credentials.respond_to?(:access_key_id) && credentials.respond_to?(:secret_access_key)
+
+        next_credentials = if credentials.respond_to?(:resolve)
+          credentials.resolve
+        elsif credentials.respond_to?(:credentials)
+          credentials.credentials
+        end
+
+        break if next_credentials.nil? || next_credentials.equal?(credentials)
+
+        credentials = next_credentials
       end
 
       signer = Aws::Sigv4::Signer.new(

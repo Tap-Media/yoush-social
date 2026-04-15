@@ -76,9 +76,10 @@ RSpec.describe Mastodon::SidekiqQueueController do
   end
 
   describe '#signed_request' do
-    it 'resolves credential providers before building the signer' do
-      credentials = instance_double(Aws::Credentials)
-      credentials_provider = instance_double(Aws::CredentialProviderChain, resolve: credentials)
+    it 'unwraps credential providers before building the signer' do
+      credentials = instance_double(Aws::Credentials, access_key_id: 'key', secret_access_key: 'secret')
+      ecs_credentials = instance_double(Aws::ECSCredentials, credentials: credentials)
+      credentials_provider = instance_double(Aws::CredentialProviderChain, resolve: ecs_credentials)
       signer = instance_double(Aws::Sigv4::Signer)
       signature = instance_double(Aws::Sigv4::Signature, headers: { 'Authorization' => 'sig' })
       response = instance_double(Net::HTTPOK)
