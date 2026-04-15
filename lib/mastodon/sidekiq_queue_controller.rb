@@ -268,10 +268,18 @@ module Mastodon
     end
 
     def signed_request(service:, endpoint:, headers:, body:)
+      credentials = if @credentials_provider.respond_to?(:credentials)
+        @credentials_provider.credentials
+      elsif @credentials_provider.respond_to?(:resolve)
+        @credentials_provider.resolve
+      else
+        @credentials_provider
+      end
+
       signer = Aws::Sigv4::Signer.new(
         service: service,
         region: @region,
-        credentials_provider: @credentials_provider
+        credentials: credentials
       )
       signature = signer.sign_request(
         http_method: 'POST',
