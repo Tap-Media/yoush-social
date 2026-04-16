@@ -5,7 +5,7 @@ class RemoteAccountRefreshWorker
   include ExponentialBackoff
   include JsonLdHelper
 
-  sidekiq_options queue: 'pull', retry: 3
+  sidekiq_options queue: 'light', retry: 3
 
   def perform(id)
     account = Account.find_by(id: id)

@@ -3,7 +3,7 @@
 class AccountMergingWorker
   include Sidekiq::Worker
 
-  sidekiq_options queue: 'pull'
+  sidekiq_options queue: 'heavy'
 
   def perform(account_id)
     account = Account.find(account_id)

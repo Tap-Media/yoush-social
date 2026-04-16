@@ -3,7 +3,7 @@
 class BulkImportWorker
   include Sidekiq::Worker
 
-  sidekiq_options queue: 'pull', retry: false
+    sidekiq_options queue: 'heavy', retry: false
 
   def perform(import_id)
     import = BulkImport.find(import_id)

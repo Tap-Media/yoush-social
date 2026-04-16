@@ -3,7 +3,7 @@
 class DomainClearMediaWorker
   include Sidekiq::Worker
 
-  sidekiq_options queue: 'pull'
+    sidekiq_options queue: 'heavy'
 
   def perform(domain_block_id)
     domain_block = DomainBlock.find_by(id: domain_block_id)

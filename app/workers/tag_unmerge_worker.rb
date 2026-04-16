@@ -4,7 +4,7 @@ class TagUnmergeWorker
   include Sidekiq::Worker
   include DatabaseHelper
 
-  sidekiq_options queue: 'pull'
+    sidekiq_options queue: 'heavy'
 
   def perform(from_tag_id, into_account_id)
     with_primary do

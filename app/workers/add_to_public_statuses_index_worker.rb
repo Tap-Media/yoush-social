@@ -4,7 +4,7 @@ class AddToPublicStatusesIndexWorker
   include Sidekiq::Worker
   include DatabaseHelper
 
-  sidekiq_options queue: 'pull'
+  sidekiq_options queue: 'heavy'
 
   def perform(account_id)
     with_primary do

@@ -4,7 +4,7 @@ class ActivityPub::ProcessFeaturedItemWorker
   include Sidekiq::Worker
   include ExponentialBackoff
 
-  sidekiq_options queue: 'pull', retry: 3
+  sidekiq_options queue: 'heavy', retry: 3
 
   def perform(collection_id, id_or_json, position = nil, request_id = nil)
     collection = Collection.find(collection_id)

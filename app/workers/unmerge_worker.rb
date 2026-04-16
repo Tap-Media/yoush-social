@@ -4,7 +4,7 @@ class UnmergeWorker
   include Sidekiq::Worker
   include DatabaseHelper
 
-  sidekiq_options queue: 'pull'
+    sidekiq_options queue: 'heavy'
 
   def perform(from_account_id, into_id, type = 'home')
     with_primary do

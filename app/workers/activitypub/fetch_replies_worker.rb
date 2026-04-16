@@ -4,7 +4,7 @@ class ActivityPub::FetchRepliesWorker
   include Sidekiq::Worker
   include ExponentialBackoff
 
-  sidekiq_options queue: 'pull', retry: 3
+  sidekiq_options queue: 'heavy', retry: 3
 
   def perform(parent_status_id, replies_uri, options = {})
     ActivityPub::FetchRepliesService.new.call(Status.find(parent_status_id).account.uri, replies_uri, **options.deep_symbolize_keys)

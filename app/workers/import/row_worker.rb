@@ -3,7 +3,7 @@
 class Import::RowWorker
   include Sidekiq::Worker
 
-  sidekiq_options queue: 'pull', retry: 6, dead: false
+    sidekiq_options queue: 'heavy', retry: 6, dead: false
 
   sidekiq_retries_exhausted do |msg, _exception|
     ActiveRecord::Base.connection_pool.with_connection do

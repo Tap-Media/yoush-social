@@ -5,7 +5,7 @@ class MentionResolveWorker
   include ExponentialBackoff
   include JsonLdHelper
 
-  sidekiq_options queue: 'pull', retry: 7
+  sidekiq_options queue: 'light', retry: 7
 
   def perform(status_id, uri, options = {})
     status = Status.find_by(id: status_id)

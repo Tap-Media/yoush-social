@@ -4,7 +4,7 @@ class ThreadResolveWorker
   include Sidekiq::Worker
   include ExponentialBackoff
 
-  sidekiq_options queue: 'pull', retry: 3
+  sidekiq_options queue: 'light', retry: 3
 
   def perform(child_status_id, parent_url, options = {})
     child_status = Status.find(child_status_id)

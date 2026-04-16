@@ -9,7 +9,7 @@ class ActivityPub::FetchAllRepliesWorker
   include ExponentialBackoff
   include JsonLdHelper
 
-  sidekiq_options queue: 'pull', retry: 3
+  sidekiq_options queue: 'heavy', retry: 3
 
   # Max number of replies to fetch - total, recursively through a whole reply tree
   MAX_REPLIES = 1000

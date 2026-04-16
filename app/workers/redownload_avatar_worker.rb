@@ -5,7 +5,7 @@ class RedownloadAvatarWorker
   include ExponentialBackoff
   include JsonLdHelper
 
-  sidekiq_options queue: 'pull', retry: 7
+    sidekiq_options queue: 'heavy', retry: 7
 
   def perform(id)
     account = Account.find(id)

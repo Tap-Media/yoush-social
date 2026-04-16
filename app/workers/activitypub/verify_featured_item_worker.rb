@@ -5,7 +5,7 @@ class ActivityPub::VerifyFeaturedItemWorker
   include ExponentialBackoff
   include JsonLdHelper
 
-  sidekiq_options queue: 'pull', retry: 5
+  sidekiq_options queue: 'heavy', retry: 5
 
   def perform(collection_item_id, approval_uri, request_id = nil)
     collection_item = CollectionItem.find(collection_item_id)

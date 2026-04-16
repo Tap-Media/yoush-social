@@ -5,7 +5,8 @@
   - [push, 6]
   - [ingress, 4]
   - [mailers, 2]
-  - [pull]
+  - [light, 2]
+  - [heavy]
   - [scheduler]
   - [fasp]
 

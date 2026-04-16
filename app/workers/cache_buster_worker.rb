@@ -4,7 +4,7 @@ class CacheBusterWorker
   include Sidekiq::Worker
   include RoutingHelper
 
-  sidekiq_options queue: 'pull'
+  sidekiq_options queue: 'light'
 
   def perform(path)
     cache_buster.bust(full_asset_url(path))
