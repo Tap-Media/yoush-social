@@ -4,8 +4,8 @@ require 'aws-sdk-core'
 require 'aws-sigv4'
 require 'json'
 require 'net/http'
+require 'redis'
 require 'securerandom'
-require 'sidekiq/api'
 require 'uri'
 
 module Mastodon
@@ -14,33 +14,7 @@ module Mastodon
       new.run!
     end
 
-    def self.recommended_desired_count(depth:, depth_scale_in_threshold:, depth_per_task:, latency:, latency_scale_in_threshold:, latency_per_task:, max_burst_count:)
-      desired_from_depth = if depth <= depth_scale_in_threshold
-        0
-      else
-        ((depth - depth_scale_in_threshold).to_f / depth_per_task).ceil
-      end
-
-      desired_from_latency = if latency <= latency_scale_in_threshold
-        0
-      else
-        (latency / latency_per_task).ceil
-      end
-
-      [[desired_from_depth, desired_from_latency].max, max_burst_count].min
-    end
-
-    def self.next_desired_count(current_desired:, recommended_desired:, max_step_change:)
-      if recommended_desired > current_desired
-        [current_desired + max_step_change, recommended_desired].min
-      elsif recommended_desired < current_desired
-        [current_desired - max_step_change, recommended_desired].max
-      else
-        current_desired
-      end
-    end
-
-    def initialize(env: ENV, credentials_provider: Aws::CredentialProviderChain.new)
+    def initialize(env: ENV, credentials_provider: Aws::CredentialProviderChain.new, redis: nil, time_source: -> { Time.now.to_f })
       @region = env.fetch('AWS_REGION')
       @workspace = env.fetch('SIDEKIQ_CONTROLLER_WORKSPACE')
       @cluster_name = env.fetch('SIDEKIQ_CONTROLLER_CLUSTER')
@@ -48,15 +22,13 @@ module Mastodon
       @metric_namespace = env.fetch('SIDEKIQ_CONTROLLER_METRIC_NAMESPACE')
       @worker_queue_names = env.fetch('SIDEKIQ_CONTROLLER_WORKER_QUEUES').split(',').reject(&:empty?)
       @scheduler_queue_name = env.fetch('SIDEKIQ_CONTROLLER_SCHEDULER_QUEUE')
-      @depth_per_task = Integer(env.fetch('SIDEKIQ_CONTROLLER_DEPTH_PER_TASK'))
       @depth_scale_in_threshold = Integer(env.fetch('SIDEKIQ_CONTROLLER_DEPTH_SCALE_IN_THRESHOLD'))
-      @latency_per_task = Float(env.fetch('SIDEKIQ_CONTROLLER_LATENCY_PER_TASK_SECONDS'))
       @latency_scale_in_threshold = Float(env.fetch('SIDEKIQ_CONTROLLER_LATENCY_SCALE_IN_THRESHOLD_SECONDS'))
-      @max_burst_count = Integer(env.fetch('SIDEKIQ_CONTROLLER_MAX_BURST_COUNT'))
       @lock_key = env.fetch('SIDEKIQ_CONTROLLER_LOCK_KEY')
       @lock_ttl = Integer(env.fetch('SIDEKIQ_CONTROLLER_LOCK_TTL_SECONDS'))
-      @max_step_change = Integer(env.fetch('SIDEKIQ_CONTROLLER_MAX_STEP_CHANGE'))
       @credentials_provider = credentials_provider
+      @redis = redis || Redis.new(url: redis_url(env))
+      @time_source = time_source
       @lock_token = SecureRandom.uuid
       @lock_acquired = false
     end
@@ -67,28 +39,9 @@ module Mastodon
 
       worker_snapshot = queue_snapshot(@worker_queue_names)
       scheduler_snapshot = queue_snapshot([@scheduler_queue_name])
-      current_desired = current_desired_count
-      recommended_desired = self.class.recommended_desired_count(
-        depth: worker_snapshot[:depth],
-        depth_scale_in_threshold: @depth_scale_in_threshold,
-        depth_per_task: @depth_per_task,
-        latency: worker_snapshot[:latency],
-        latency_scale_in_threshold: @latency_scale_in_threshold,
-        latency_per_task: @latency_per_task,
-        max_burst_count: @max_burst_count
-      )
-      next_desired = self.class.next_desired_count(
-        current_desired: current_desired,
-        recommended_desired: recommended_desired,
-        max_step_change: @max_step_change
-      )
-
-      update_desired_count(next_desired) if next_desired != current_desired
       publish_metrics(
         worker_snapshot: worker_snapshot,
-        scheduler_snapshot: scheduler_snapshot,
-        recommended_desired: recommended_desired,
-        next_desired: next_desired
+        scheduler_snapshot: scheduler_snapshot
       )
 
       puts({
@@ -96,9 +49,6 @@ module Mastodon
         worker_queue_latency: worker_snapshot[:latency],
         scheduler_queue_depth: scheduler_snapshot[:depth],
         scheduler_queue_latency: scheduler_snapshot[:latency],
-        burst_desired_current: current_desired,
-        burst_desired_recommended: recommended_desired,
-        burst_desired_applied: next_desired,
       }.to_json)
     ensure
       release_lock if @lock_acquired
@@ -106,63 +56,75 @@ module Mastodon
 
     private
 
+    def redis_url(env)
+      return env['REDIS_URL'] if env['REDIS_URL'] && !env['REDIS_URL'].empty?
+
+      host = env.fetch('REDIS_HOST')
+      port = Integer(env.fetch('REDIS_PORT', '6379'))
+      db = Integer(env.fetch('REDIS_DB', '0'))
+
+      "redis://#{host}:#{port}/#{db}"
+    end
+
     def acquire_lock
-      Sidekiq.redis do |redis|
-        redis.set(@lock_key, @lock_token, nx: true, ex: @lock_ttl)
-      end
+      @redis.set(@lock_key, @lock_token, nx: true, ex: @lock_ttl)
     end
 
     def release_lock
-      Sidekiq.redis do |redis|
-        redis.call(
-          'EVAL',
-          "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-          1,
-          @lock_key,
-          @lock_token
-        )
-      end
-    end
-
-    def queue_snapshot(queue_names)
-      queues = queue_names.map { |name| Sidekiq::Queue.new(name) }
-
-      {
-        depth: queues.sum(&:size),
-        latency: queues.map(&:latency).max.to_f,
-      }
-    end
-
-    def current_desired_count
-      service = ecs_request(
-        action: 'DescribeServices',
-        payload: {
-          cluster: @cluster_name,
-          services: [@burst_service_name],
-        }
-      ).fetch('services').first
-
-      raise 'Sidekiq burst ECS service was not returned by DescribeServices' if service.nil?
-
-      service.fetch('desiredCount')
-    end
-
-    def update_desired_count(next_desired)
-      ecs_request(
-        action: 'UpdateService',
-        payload: {
-          cluster: @cluster_name,
-          service: @burst_service_name,
-          desiredCount: next_desired,
-        }
+      @redis.call(
+        'EVAL',
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+        1,
+        @lock_key,
+        @lock_token
       )
     end
 
-    def publish_metrics(worker_snapshot:, scheduler_snapshot:, recommended_desired:, next_desired:)
+    def queue_snapshot(queue_names)
+      queue_keys = queue_names.map { |name| sidekiq_queue_key(name) }
+      responses = @redis.pipelined do |pipeline|
+        queue_keys.each do |queue_key|
+          pipeline.llen(queue_key)
+          pipeline.lindex(queue_key, -1)
+        end
+      end
+
+      depth = 0
+      latency = 0.0
+
+      responses.each_slice(2) do |queue_depth, oldest_job_payload|
+        depth += queue_depth.to_i
+        latency = [latency, queue_latency(oldest_job_payload)].max
+      end
+
+      {
+        depth: depth,
+        latency: latency,
+      }
+    end
+
+    def sidekiq_queue_key(name)
+      "queue:#{name}"
+    end
+
+    def queue_latency(oldest_job_payload)
+      return 0.0 if oldest_job_payload.nil? || oldest_job_payload.empty?
+
+      enqueued_at = JSON.parse(oldest_job_payload)['enqueued_at']
+      return 0.0 if enqueued_at.nil?
+
+      [@time_source.call - enqueued_at.to_f, 0.0].max
+    rescue JSON::ParserError, TypeError
+      0.0
+    end
+
+    def publish_metrics(worker_snapshot:, scheduler_snapshot:)
       common_dimensions = {
         'Workspace' => @workspace,
         'ClusterName' => @cluster_name,
       }
+      depth_scale_signal = [worker_snapshot[:depth] - @depth_scale_in_threshold, 0].max
+      latency_scale_signal = [worker_snapshot[:latency] - @latency_scale_in_threshold, 0.0].max
 
       put_metric_data(
         namespace: @metric_namespace,
@@ -180,8 +142,20 @@ module Mastodon
             dimensions: common_dimensions.merge('ServiceName' => @burst_service_name),
           },
           {
+            name: 'SidekiqWorkerQueueDepthScaleSignal',
+            value: depth_scale_signal,
+            unit: 'Count',
+            dimensions: common_dimensions.merge('ServiceName' => @burst_service_name),
+          },
+          {
             name: 'SidekiqWorkerQueueLatency',
             value: worker_snapshot[:latency],
+            unit: 'Seconds',
+            dimensions: common_dimensions.merge('ServiceName' => @burst_service_name),
+          },
+          {
+            name: 'SidekiqWorkerQueueLatencyScaleSignal',
+            value: latency_scale_signal,
             unit: 'Seconds',
             dimensions: common_dimensions.merge('ServiceName' => @burst_service_name),
           },
@@ -203,37 +177,7 @@ module Mastodon
               'QueueName' => @scheduler_queue_name,
             },
           },
-          {
-            name: 'SidekiqBurstDesiredCountRecommended',
-            value: recommended_desired,
-            unit: 'Count',
-            dimensions: common_dimensions.merge('ServiceName' => @burst_service_name),
-          },
-          {
-            name: 'SidekiqBurstDesiredCountApplied',
-            value: next_desired,
-            unit: 'Count',
-            dimensions: common_dimensions.merge('ServiceName' => @burst_service_name),
-          },
         ]
-      )
-    end
-
-    def ecs_request(action:, payload:)
-      endpoint = URI("https://ecs.#{@region}.amazonaws.com/")
-      headers = {
-        'content-type' => 'application/x-amz-json-1.1',
-        'host' => endpoint.host,
-        'x-amz-target' => "AmazonEC2ContainerServiceV20141113.#{action}",
-      }
-
-      JSON.parse(
-        signed_request(
-          service: 'ecs',
-          endpoint: endpoint,
-          headers: headers,
-          body: JSON.generate(payload)
-        ).body
       )
     end
 
