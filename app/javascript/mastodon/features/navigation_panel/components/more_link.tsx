@@ -6,10 +6,12 @@ import MoreHorizIcon from '@/material-icons/400-24px/more_horiz.svg?react';
 import { openModal } from 'mastodon/actions/modal';
 import { Dropdown } from 'mastodon/components/dropdown_menu';
 import { Icon } from 'mastodon/components/icon';
+import { sso_redirect } from 'mastodon/initial_state';
 import { useIdentity } from 'mastodon/identity_context';
 import type { MenuItem } from 'mastodon/models/dropdown_menu';
 import { canManageReports, canViewAdminDashboard } from 'mastodon/permissions';
 import { useAppDispatch } from 'mastodon/store';
+import { logOut } from 'mastodon/utils/log_out';
 
 const messages = defineMessages({
   blocks: { id: 'navigation_bar.blocks', defaultMessage: 'Blocked users' },
@@ -100,6 +102,11 @@ export const MoreLink: React.FC = () => {
     }
 
     const handleLogoutClick = () => {
+      if (sso_redirect) {
+        void logOut();
+        return;
+      }
+
       dispatch(openModal({ modalType: 'CONFIRM_LOG_OUT', modalProps: {} }));
     };
 

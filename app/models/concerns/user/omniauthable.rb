@@ -84,12 +84,36 @@ module User::Omniauthable
     end
 
     def email_from_auth(auth)
-      strategy          = Devise.omniauth_configs[auth.provider.to_sym].strategy
-      assume_verified   = strategy&.security&.assume_email_is_verified
-      email_is_verified = auth.info.verified || auth.info.verified_email || auth.info.email_verified || assume_verified
-      email             = auth.info.verified_email || auth.info.email
+      raw_info = raw_info_from_auth(auth)
 
-      [email, email_is_verified]
+      [
+        email_claim_from_auth(auth, raw_info),
+        email_verified_from_auth?(auth, raw_info),
+      ]
+    end
+
+    def raw_info_from_auth(auth)
+      auth.extra&.raw_info
+    end
+
+    def email_claim_from_auth(auth, raw_info)
+      auth.info.verified_email || auth.info.email || raw_info&.verified_email || raw_info&.email
+    end
+
+    def email_verified_from_auth?(auth, raw_info)
+      verification_claim = auth.info.verified ||
+                           auth.info.verified_email ||
+                           auth.info.email_verified ||
+                           raw_info&.verified ||
+                           raw_info&.verified_email ||
+                           raw_info&.email_verified ||
+                           assume_email_is_verified?(auth)
+
+      ActiveModel::Type::Boolean.new.cast(verification_claim)
+    end
+
+    def assume_email_is_verified?(auth)
+      Devise.omniauth_configs[auth.provider.to_sym].strategy&.security&.assume_email_is_verified
     end
 
     def user_params_from_auth(email, auth)
@@ -98,10 +122,19 @@ module User::Omniauthable
         agreement: true,
         external: true,
         account_attributes: {
-          username: ensure_unique_username(ensure_valid_username(auth.uid)),
+          username: ensure_unique_username(ensure_valid_username(username_from_auth(auth))),
           display_name: display_name_from_auth(auth),
         },
       }
+    end
+
+    def username_from_auth(auth)
+      raw_info = raw_info_from_auth(auth)
+
+      raw_info&.preferred_username.presence ||
+        auth.info.nickname.presence ||
+        auth.info.email.to_s.split('@')[0].presence ||
+        auth.uid
     end
 
     def ensure_unique_username(starting_username)

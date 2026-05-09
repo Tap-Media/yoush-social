@@ -43,7 +43,9 @@ require 'webmock/rspec'
 require 'paperclip/matchers'
 require 'capybara/rspec'
 require 'chewy/rspec'
+require 'database_cleaner/active_record'
 require 'pundit/rspec'
+require 'rspec-sidekiq'
 require 'test_prof/recipes/rspec/before_all'
 
 Rails.root.glob('spec/support/**/*.rb').each { |f| require f }

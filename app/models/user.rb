@@ -104,7 +104,7 @@ class User < ApplicationRecord
   validates_with RegistrationFormTimeValidator, on: :create
   validates :website, absence: true, on: :create
   validates :confirm_password, absence: true, on: :create
-  validates :date_of_birth, presence: true, date_of_birth: true, on: :create, if: -> { Setting.min_age.present? && !bypass_registration_checks? }
+  validates :date_of_birth, presence: true, date_of_birth: true, on: :create, if: :validate_date_of_birth?
   validate :validate_role_elevation
 
   scope :account_not_suspended, -> { joins(:account).merge(Account.without_suspended) }
@@ -431,6 +431,10 @@ class User < ApplicationRecord
 
   def set_age_verified_at
     self.age_verified_at = Time.now.utc if Setting.min_age.present?
+  end
+
+  def validate_date_of_birth?
+    Setting.min_age.present? && !external? && !bypass_registration_checks?
   end
 
   def grant_approval_on_confirmation?

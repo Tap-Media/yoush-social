@@ -124,6 +124,36 @@ RSpec.describe ApplicationHelper do
     end
   end
 
+  describe 'link_to_sign_up' do
+    context 'when in omniauth only mode' do
+      around do |example|
+        ClimateControl.modify OMNIAUTH_ONLY: 'true' do
+          example.run
+        end
+      end
+
+      before do
+        allow(User).to receive(:omniauth_providers).and_return([:openid_connect])
+        helper.define_singleton_method(:omniauth_authorize_path) do |_scope, provider, extra_params = {}|
+          query = extra_params.present? ? "?#{extra_params.to_query}" : ''
+          "/auth/auth/#{provider}#{query}"
+        end
+      end
+
+      it 'posts to the configured omniauth provider' do
+        expect(helper.link_to_sign_up('Sign up'))
+          .to match(%r{href="/auth/auth/openid_connect\?screen_hint=signup"})
+          .and match(/data-(turbo-)?method="post"/)
+      end
+
+      it 'posts the login link to the configured omniauth provider' do
+        expect(helper.link_to_login('Sign in'))
+          .to match(%r{href="/auth/auth/openid_connect"})
+          .and match(/data-(turbo-)?method="post"/)
+      end
+    end
+  end
+
   describe 'omniauth_only?' do
     context 'when env var is set to true' do
       around do |example|

@@ -47,27 +47,44 @@ module ApplicationHelper
   end
 
   def link_to_login(name = nil, html_options = nil, &block)
-    target = new_user_session_path
+    link_to_auth_target(new_user_session_path, name, html_options, &block)
+  end
 
-    html_options = name if block
-
-    if omniauth_only? && Devise.mappings[:user].omniauthable? && User.omniauth_providers.size == 1
-      target = omniauth_authorize_path(:user, User.omniauth_providers[0])
-      html_options ||= {}
-      html_options[:method] = :post
-    end
-
-    if block
-      link_to(target, html_options, &block)
-    else
-      link_to(name, target, html_options)
-    end
+  def link_to_sign_up(name = nil, html_options = nil, &block)
+    link_to_auth_target(available_sign_up_url, name, html_options, screen_hint: 'signup', &block)
   end
 
   def provider_sign_in_link(provider)
     label = Devise.omniauth_configs[provider]&.strategy&.display_name.presence || I18n.t("auth.providers.#{provider}", default: provider.to_s.chomp('_oauth2').capitalize)
     link_to label, omniauth_authorize_path(:user, provider), class: "btn button-#{provider}", method: :post
   end
+
+  def omniauth_only_target(extra_params = {})
+    provider = single_omniauth_provider
+    return unless provider && omniauth_only? && Devise.mappings[:user].omniauthable?
+
+    omniauth_authorize_path(:user, provider, extra_params)
+  end
+
+  def single_omniauth_provider
+    User.omniauth_providers.first if User.omniauth_providers.one?
+  end
+
+  def link_to_auth_target(default_target, name = nil, html_options = nil, extra_params = {}, &block)
+    html_options = name if block
+
+    if (omniauth_target = omniauth_only_target(extra_params))
+      default_target = omniauth_target
+      html_options = (html_options || {}).merge(method: :post)
+    end
+
+    if block
+      link_to(default_target, html_options, &block)
+    else
+      link_to(name, default_target, html_options)
+    end
+  end
+  private :link_to_auth_target, :single_omniauth_provider
 
   def locale_direction
     if RTL_LOCALES.include?(I18n.locale)

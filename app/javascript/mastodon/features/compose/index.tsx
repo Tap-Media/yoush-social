@@ -22,8 +22,9 @@ import { openModal } from 'mastodon/actions/modal';
 import { Column } from 'mastodon/components/column';
 import { ColumnHeader } from 'mastodon/components/column_header';
 import { Icon } from 'mastodon/components/icon';
-import { mascot, reduceMotion } from 'mastodon/initial_state';
+import { mascot, reduceMotion, sso_redirect } from 'mastodon/initial_state';
 import { useAppDispatch, useAppSelector } from 'mastodon/store';
+import { logOut } from 'mastodon/utils/log_out';
 
 import { messages as navbarMessages } from '../ui/components/navigation_bar';
 
@@ -70,6 +71,11 @@ const Compose: React.FC<{ multiColumn: boolean }> = ({ multiColumn }) => {
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      if (sso_redirect) {
+        void logOut();
+        return false;
+      }
 
       dispatch(openModal({ modalType: 'CONFIRM_LOG_OUT', modalProps: {} }));
 

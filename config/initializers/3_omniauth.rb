@@ -87,6 +87,7 @@ Devise.setup do |config|
     oidc_options[:pkce] = ENV['OIDC_USE_PKCE'] == 'true' if ENV['OIDC_USE_PKCE'] # OPTIONAL (default: false)
     oidc_options[:send_nonce] = ENV['OIDC_SEND_NONCE'] == 'true' if ENV['OIDC_SEND_NONCE'] # OPTIONAL (default: true)
     oidc_options[:send_scope_to_token_endpoint] = ENV['OIDC_SEND_SCOPE_TO_TOKEN_ENDPOINT'] == 'true' if ENV['OIDC_SEND_SCOPE_TO_TOKEN_ENDPOINT'] # OPTIONAL (default: true)
+    oidc_options[:allow_authorize_params] = %i[screen_hint kc_action]
     oidc_options[:post_logout_redirect_uri] = ENV['OIDC_IDP_LOGOUT_REDIRECT_URI'] if ENV['OIDC_IDP_LOGOUT_REDIRECT_URI'] # OPTIONAL
     oidc_options[:uid_field] = ENV['OIDC_UID_FIELD'] if ENV['OIDC_UID_FIELD'] # NEED
     oidc_options[:client_options] = {}

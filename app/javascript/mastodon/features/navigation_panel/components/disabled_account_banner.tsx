@@ -7,10 +7,12 @@ import { Link } from 'react-router-dom';
 import { openModal } from 'mastodon/actions/modal';
 import {
   disabledAccountId,
+  sso_redirect,
   movedToAccountId,
   domain,
 } from 'mastodon/initial_state';
 import { useAppSelector, useAppDispatch } from 'mastodon/store';
+import { logOut } from 'mastodon/utils/log_out';
 
 export const DisabledAccountBanner: React.FC = () => {
   const disabledAccount = useAppSelector((state) =>
@@ -25,6 +27,11 @@ export const DisabledAccountBanner: React.FC = () => {
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      if (sso_redirect) {
+        void logOut();
+        return false;
+      }
 
       dispatch(openModal({ modalType: 'CONFIRM_LOG_OUT', modalProps: {} }));
 

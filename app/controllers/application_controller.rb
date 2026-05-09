@@ -91,12 +91,36 @@ class ApplicationController < ActionController::Base
   end
 
   def after_sign_out_path_for(_resource_or_scope)
-    if ENV['OMNIAUTH_ONLY'] == 'true' && Rails.configuration.x.omniauth.oidc_enabled?
-      '/auth/auth/openid_connect/logout'
-    else
-      new_user_session_path
-    end
+    return new_user_session_path unless ENV['OMNIAUTH_ONLY'] == 'true' && Rails.configuration.x.omniauth.oidc_enabled?
+
+    oidc_logout_redirect_url || '/auth/auth/openid_connect/logout'
   end
+
+  def oidc_logout_redirect_url
+    end_session_endpoint = ENV['OIDC_END_SESSION_ENDPOINT'].presence || default_oidc_end_session_endpoint
+    post_logout_redirect_uri = ENV['OIDC_IDP_LOGOUT_REDIRECT_URI'].presence
+    client_id = ENV['OIDC_CLIENT_ID'].presence
+
+    return if end_session_endpoint.blank? || post_logout_redirect_uri.blank? || client_id.blank?
+
+    logout_uri = URI(end_session_endpoint)
+    query = Rack::Utils.parse_nested_query(logout_uri.query)
+    query['client_id'] ||= client_id
+    query['post_logout_redirect_uri'] ||= post_logout_redirect_uri
+    logout_uri.query = query.to_query
+    logout_uri.to_s
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def default_oidc_end_session_endpoint
+    oidc_issuer = ENV['OIDC_ISSUER'].presence
+    return if oidc_issuer.blank?
+
+    "#{oidc_issuer.chomp('/')}/protocol/openid-connect/logout"
+  end
+
+  private :oidc_logout_redirect_url, :default_oidc_end_session_endpoint
 
   protected
 

@@ -11,6 +11,11 @@ RSpec.describe 'OmniAuth callbacks' do
         mock_omniauth(provider, {
           provider: provider.to_s,
           uid: '123',
+          extra: {
+            raw_info: {
+              preferred_username: 'yoush_user',
+            },
+          },
           info: {
             verified: 'true',
             email: 'user@host.example',
@@ -29,6 +34,7 @@ RSpec.describe 'OmniAuth callbacks' do
             .by(1)
 
           expect(User.last.email).to eq('user@host.example')
+          expect(User.last.account.username).to eq('yoush_user')
           expect(Identity.find_by(user: User.last).uid).to eq('123')
           expect(response).to redirect_to(root_path)
         end
@@ -110,6 +116,81 @@ RSpec.describe 'OmniAuth callbacks' do
           .by(1)
 
         expect(response).to redirect_to(auth_setup_path(missing_email: '1'))
+      end
+    end
+
+    context 'when email verification is only present in raw_info' do
+      before do
+        mock_omniauth(provider, {
+          provider: provider.to_s,
+          uid: '123',
+          extra: {
+            raw_info: {
+              preferred_username: 'yoush_user',
+              email: 'user@host.example',
+              email_verified: true,
+            },
+          },
+          info: {
+            email: 'user@host.example',
+          },
+        })
+
+        allow(EmailDomainBlock).to receive(:block?).and_return(true)
+      end
+
+      it 'creates a confirmed user and an identity' do
+        expect { subject }
+          .to change(User, :count)
+          .by(1)
+          .and change(Identity, :count)
+          .by(1)
+          .and change(LoginActivity, :count)
+          .by(1)
+
+        expect(User.last).to be_confirmed
+        expect(User.last.email).to eq('user@host.example')
+        expect(response).to redirect_to(root_path)
+      end
+    end
+
+    context 'when external OIDC sign-in runs with min_age configured' do
+      around do |example|
+        original_min_age = Setting.min_age
+        Setting.min_age = 0
+        example.run
+      ensure
+        Setting.min_age = original_min_age
+      end
+
+      before do
+        mock_omniauth(provider, {
+          provider: provider.to_s,
+          uid: '123',
+          extra: {
+            raw_info: {
+              preferred_username: 'yoush_user',
+              email: 'user@host.example',
+              email_verified: true,
+            },
+          },
+          info: {
+            email: 'user@host.example',
+          },
+        })
+      end
+
+      it 'creates a user without requiring a date of birth' do
+        expect { subject }
+          .to change(User, :count)
+          .by(1)
+          .and change(Identity, :count)
+          .by(1)
+          .and change(LoginActivity, :count)
+          .by(1)
+
+        expect(User.last).to be_confirmed
+        expect(response).to redirect_to(root_path)
       end
     end
 
