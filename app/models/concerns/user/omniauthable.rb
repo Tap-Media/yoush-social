@@ -33,6 +33,7 @@ module User::Omniauthable
       user ||= create_for_auth(auth)
 
       if identity.user.nil?
+        remove_stale_provider_identities_for_auth!(identity, user)
         identity.user = user
         identity.save!
       end
@@ -58,9 +59,18 @@ module User::Omniauthable
       return unless email_is_verified
 
       user = User.find_by(email: email)
-      return if user.nil? || Identity.exists?(provider: auth.provider, user_id: user.id)
+      return if user.nil? || Identity.exists?(provider: auth.provider, user_id: user.id, uid: auth.uid)
 
       user
+    end
+
+    def remove_stale_provider_identities_for_auth!(identity, user)
+      return if user.nil?
+
+      Identity.where(provider: identity.provider, user_id: user.id)
+              .where.not(id: identity.id)
+              .where.not(uid: identity.uid)
+              .destroy_all
     end
 
     def create_for_auth(auth)

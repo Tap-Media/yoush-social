@@ -93,6 +93,34 @@ RSpec.describe 'OmniAuth callbacks' do
           expect(response).to redirect_to(root_path)
         end
       end
+
+      context 'with a matching user and a stale identity for the same provider' do
+        before do
+          user = Fabricate(:user, email: 'user@host.example')
+          Fabricate(:identity, user: user, uid: 'old-subject', provider: provider)
+        end
+
+        context 'when ALLOW_UNSAFE_AUTH_PROVIDER_REATTACH is set to true' do
+          around do |example|
+            ClimateControl.modify ALLOW_UNSAFE_AUTH_PROVIDER_REATTACH: 'true' do
+              example.run
+            end
+          end
+
+          it 'reattaches the existing user and rotates the stale identity to the new uid' do
+            expect { subject }
+              .to not_change(User, :count)
+              .and not_change(Identity, :count)
+              .and change(LoginActivity, :count)
+              .by(1)
+
+            identity = Identity.find_by(user: User.last, provider: provider)
+
+            expect(identity.uid).to eq('123')
+            expect(response).to redirect_to(root_path)
+          end
+        end
+      end
     end
 
     context 'with a response missing email address' do
